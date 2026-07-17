@@ -1,0 +1,39 @@
+html,
+body{
+    margin:0;
+    padding:0;
+    background:transparent;
+    overflow:hidden;
+    font-family:Arial;
+    color:yellow;
+}
+
+.camera{
+    position:absolute;
+    width:180px;
+}
+
+.location{
+    font-size:12px;
+    font-weight:400;
+}
+
+.status {
+    font-size: 12px;
+    margin-top: 32px;
+}
+
+.playing{
+    color:lime;
+    font-weight: 400;
+}
+
+.stopped{
+    color:red;
+    font-weight: bold;
+}
+
+#test {
+    color: red;
+    background: white;
+}
