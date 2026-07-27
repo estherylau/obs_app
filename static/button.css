@@ -1,0 +1,35 @@
+html,
+body {
+    background:transparent;
+    margin:0;
+    padding:0;
+}
+
+.label {
+    display: flex;
+    justify-content: center;
+}
+
+button {
+/*    width: 150px;
+    height: 50px;*/
+    font-size: 12px;
+    cursor:pointer;
+}
+
+.location-label {
+    background: yellow;
+    color: #000000;
+    font-size: 12px;
+    margin-left: 30px;
+    margin-right: 20px;
+    font-family: arial;
+    height: 14px;
+}
+
+.stop-btn {
+    position: absolute;
+    right: 4px;
+    height: 14px;
+    font-size: 10px;
+}

@@ -6,34 +6,50 @@ body{
     overflow:hidden;
     font-family:Arial;
     color:yellow;
+    width: 1020px;
+    height: 562px;
+}
+
+#overlay {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+
+    pointer-events: none;
 }
 
 .camera{
-    position:absolute;
-    width:180px;
+    display: flex;
+    flex-direction: column;
+    color: white;
+    font-family: Arial;
 }
 
 .location{
-    font-size:12px;
-    font-weight:400;
+    background-color: yellow;
+    color: #000000;
+    position: relative;
+    display: inline;
+    /*margin-left: 10px;*/
+    margin: 0 auto;
+    padding: 0 2px;
+    font-size:11px;
+    font-weight:300;
 }
 
 .status {
-    font-size: 12px;
-    margin-top: 32px;
+    font-size: 11px;
+    margin-top: 8px;
+    margin-left: 14px;
 }
 
 .playing{
     color:lime;
-    font-weight: 400;
 }
 
 .stopped{
-    color:red;
+    color:yellow;
     font-weight: bold;
-}
-
-#test {
-    color: red;
-    background: white;
 }
