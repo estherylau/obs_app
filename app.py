@@ -12,6 +12,7 @@ from config import Config
 import google_sheet
 from flask import request
 
+import camera_monitor
 
 app = Flask(__name__)
 
@@ -22,12 +23,13 @@ CORS(app)
 ##########################################################
 
 def update_loop():
-
     while True:
-
         try:
             google_sheet.refresh_cache()
             print("Google Sheet refreshed")
+
+            camera_monitor.start()
+            print("Start camera monitoring")
 
         except Exception as ex:
             print(ex)
@@ -41,7 +43,6 @@ def update_loop():
 
 @app.route("/api/cameras")
 def api_cameras():
-
     return jsonify(
         google_sheet.get_cache()
     )
@@ -132,7 +133,6 @@ def stop_camera(camera_id):
 ##########################################################
 
 if __name__ == "__main__":
-
     google_sheet.refresh_cache()
 
     thread = threading.Thread(
