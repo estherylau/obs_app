@@ -1,0 +1,6 @@
+flask
+Flask-Cors
+gspread
+config
+google-auth
+dotenv

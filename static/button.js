@@ -1,3 +1,30 @@
+const buttonLayout = document.getElementById("location");
+
+/* Create Single Layout */
+function createCamera(camera){
+    const div = document.createElement("div");
+
+    div.className = "device-label";
+
+    // const statusClass =
+    //     camera.status === "Playing"
+    //     ? "playing"
+    //     : "stopped";
+
+        //         <div class="location">
+        //     ${camera.num} - Location
+        // </div>
+
+    div.innerHTML = `
+        <div class="loca">
+            ${camera.location}
+        </div>
+    `;
+
+    buttonLayout.appendChild(div);
+}
+
+
 async function stopCamera(cameraId)
 {
     console.log(
@@ -20,10 +47,9 @@ async function stopCamera(cameraId)
 
 
         if(result.success){
-
             console.log(
                 "Stopped:",
-                cameraId
+                result
             );
         }
     }

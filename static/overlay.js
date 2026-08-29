@@ -23,36 +23,3 @@ function createCamera(camera){
 
     overlay.appendChild(div);
 }
-
-
-async function refresh() {
-    const response =
-        await fetch("/api/cameras");
-
-    const cameras = await response.json();
-
-    overlay.innerHTML = "";
-
-    cameras.forEach((camera,index)=>{
-        createCamera(camera);
-    });
-
-}
-
-refresh();
-
-setInterval(
-    refresh,
-    5000
-);
-
-
-// window.onload = function() {
-//   const testBtn = document.getElementById("test");
-//     const helloBtn = document.getElementById("hello");
-
-//     testBtn.addEventListener('click', () => {
-//     testBtn.style.color = "blue";
-//     helloBtn.style.color = "blue";
-//     });  
-// }

@@ -77,9 +77,10 @@ def refresh_cache():
             row.append("")
 
         try:
-            camera_number = int(
-                row[column_map["Device Number"]].strip()
-            )
+            # camera_number = int(
+            #     row[column_map["Device Number"]].strip()
+            # )
+            camera_number = row[column_map["Device Number"]].strip()
         except ValueError:
             continue
 

@@ -1,11 +1,10 @@
 # obs_app
 
-Requirements
-Flask
-Flask-Cors
-gspread
-google-auth
-dotenv
+***********************************************************
+Backend
+Install libraries before running the app:
+pip install -r requirements.txt
+
 
 Run app:
 python3 app.py
