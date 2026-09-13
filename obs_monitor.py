@@ -74,17 +74,16 @@ def get_locations():
     num = 1
 
     for row in values[1:]:
+        print(f"row: {row}")
         # Make sure the row has enough columns
         while len(row) < len(headers):
             row.append("")
 
-        ip_address = row[
-            column_map["IP Address"]
-        ].strip()
+        is_ping = row[column_map["Ping"]].strip()
 
-        location = row[
-            column_map["Location"]
-        ].strip()
+        ip_address = row[column_map["IP Address"]].strip()
+
+        location = row[column_map["Location"]].strip()
 
         if not ip_address:
             continue
@@ -92,7 +91,8 @@ def get_locations():
         locations.append({
             "num": num,
             "location": location,
-            "ip_address": ip_address
+            "ip_address": ip_address,
+            "is_ping": is_ping
         })
 
         num += 1
@@ -101,18 +101,30 @@ def get_locations():
 
 # FETCH ONE LOCATION
 def fetch_location(location):
-
+    print(f"fetch_location: {location}")
+    num = location["num"]
+    location_name = location["location"]
     ip_address = location["ip_address"]
-    url = (
-        f"http://{ip_address}"
-        f"/api/recorders/status"
-    )
-    
-    # url = SOURCE_URLS[index]
+    ping = location["is_ping"]
+
     output_data = {
         "status": "running",
         "results": []
     }
+
+    # Disable pining in Google Sheet
+    if ping.lower() == "no":
+        return {
+            "num": num,
+            "location": location_name,
+            "ip_address": ip_address,
+            "status": "The room is not in use",
+            "data": output_data
+        }
+        # channel_status = "The room is not in use"
+
+    url = f"http://{ip_address}/api/recorders/status"
+    
     print(f'ip_address: {url}')
     try:
         response = requests.get(
@@ -164,8 +176,8 @@ def fetch_location(location):
 
     # Add information about this location.
     output = {
-        "num": location["num"],
-        "location": location["location"],
+        "num": num,
+        "location": location_name,
         "ip_address": ip_address,
         "status": channel_status,
         "data": output_data
