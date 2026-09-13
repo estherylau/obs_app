@@ -5,17 +5,16 @@ import threading
 import urllib3
 from config import Config
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import gspread
 from google.oauth2.service_account import Credentials
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+MAX_WORKERS = 30
 
-# CONFIGURATION
-REFRESH_INTERVAL = 5  # seconds
-AUTH = ("admin", "scapture123!")
+AUTH = (Config.PEARL_USERNAME, Config.PEARL_PASSWORD)
 
 # GOOGLE SHEET
 SCOPES = [
@@ -38,6 +37,12 @@ worksheet = spreadsheet.worksheet("Pearl")
 results_cache = []
 results_lock = threading.Lock()
 
+# Worker pool
+executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+
+# Prevent overlapping polling cycles
+poll_lock = threading.Lock()
+
 # GET LOCATIONS FROM GOOGLE SHEET
 def get_locations():
     values = worksheet.get_all_values()
@@ -45,15 +50,15 @@ def get_locations():
     if len(values) < 2:
         return []
 
-    headers = [
-        header.strip()
-        for header in values[0]
-    ]
+    headers = [header.strip() for header in values[0]]
 
     column_map = {
         header: index
         for index, header in enumerate(headers)
     }
+
+    locations = []
+    num = 1
 
     required_columns = [
         "Ping",
@@ -69,20 +74,25 @@ def get_locations():
                 f"Missing Google Sheet column: {column}"
             )
 
-    locations = []
-
-    num = 1
-
-    for row in values[1:]:
+    # Google Sheet row numbers start at 2 because row 1 is headers.
+    for sheet_row, row in enumerate(values[1:], start=2):
         print(f"row: {row}")
-        # Make sure the row has enough columns
+
+        # Ignore rows outside the configured monitor range.
+        if sheet_row < Config.MONITOR_START_ROW:
+            continue
+
+        if sheet_row > Config.MONITOR_END_ROW:
+            break
+
+        if not any(cell.strip() for cell in row):
+            continue
+
         while len(row) < len(headers):
             row.append("")
 
         is_ping = row[column_map["Ping"]].strip()
-
         ip_address = row[column_map["IP Address"]].strip()
-
         location = row[column_map["Location"]].strip()
 
         if not ip_address:
@@ -123,10 +133,10 @@ def fetch_location(location):
         }
         # channel_status = "The room is not in use"
 
-    url = f"http://{ip_address}/api/recorders/status"
-    
-    print(f'ip_address: {url}')
     try:
+        url = f"http://{ip_address}/api/recorders/status"
+        print(f'ip_address: {url}')
+
         response = requests.get(
             url,
             verify=False,
@@ -161,29 +171,37 @@ def fetch_location(location):
         elif any(item.get("status", {}).get("state") == "stopped" for item in output_data.get("result", [])):
             channel_status = "Not recording"
 
+        return {
+            "num": num,
+            "location": location_name,
+            "ip_address": ip_address,
+            "status": channel_status,
+            "data": output_data
+        }
+
     except requests.exceptions.ConnectionError as e:
         # print(f"{ip_address} - Connection Error: {e}")
         print(f"{ip_address} - Connection Error")
-        channel_status = "OFFLINE"
+        # channel_status = "OFFLINE"
 
     except requests.exceptions.Timeout as e:
         print(f"{ip_address} - Timeout: {e}")
-        channel_status = "OFFLINE"
+        # channel_status = "OFFLINE"
 
     except Exception as e:
         print(f"{ip_address} - Error: {e}")
-        channel_status = "OFFLINE"
+        # channel_status = "OFFLINE"
 
     # Add information about this location.
-    output = {
+    return {
         "num": num,
         "location": location_name,
         "ip_address": ip_address,
-        "status": channel_status,
+        "status": "OFFLINE",
         "data": output_data
     }
 
-    return output
+    # return output
 
 def get_channel_status(data):
     results = data.get("result", [])
@@ -250,9 +268,58 @@ def get_results():
 # MONITOR LOOP
 def monitor_loop():
     while True:
-        poll_all_locations()
+        # Don't start another polling cycle if the previous
+        # cycle is still running.
+        if not poll_lock.acquire(blocking=False):
+            print("Previous polling cycle still running. Skipping this cycle.")
+            time.sleep(Config.REFRESH_INTERVAL)
+            continue
 
-        time.sleep(REFRESH_INTERVAL)
+        try:
+            locations = get_locations()
+
+            futures = {
+                executor.submit(fetch_location, location): location
+                for location in locations
+            }
+
+            results = []
+
+            for future in as_completed(futures):
+                location = futures[future]
+                try:
+                    result = future.result()
+
+                    if result is not None:
+                        results.append(result)
+
+                except Exception as ex:
+                    print(
+                        f"Error processing "
+                        f"{location['ip_address']}: {ex}"
+                    )
+
+                    results.append({
+                        "num": location["num"],
+                        "location": location["location"],
+                        "ip_address": location["ip_address"],
+                        "status": "OFFLINE",
+                        "result": []
+                    })
+
+            # Keep the UI in num order
+            results.sort(key=lambda x: x["num"])
+
+            with results_lock:
+                results_cache[:] = results
+
+        except Exception as ex:
+            print(f"Monitor loop error: {ex}")
+
+        finally:
+            poll_lock.release()
+
+        time.sleep(Config.REFRESH_INTERVAL)
 
 
 # START MONITOR

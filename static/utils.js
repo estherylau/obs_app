@@ -3,7 +3,6 @@ async function refresh() {
         await fetch("/api/cameras");
 
     const cameras = await response.json();
-    console.log("what is cameras: ", cameras);
 
     const overlay = document.getElementById('overlay');
     const buttonLayout = document.getElementById("location");

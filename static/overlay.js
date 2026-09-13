@@ -2,7 +2,6 @@ const overlay = document.getElementById("overlay");
 
 /* Create Single Layout */
 function createCamera(camera){
-    console.log('createCamera.overlay: ', camera);
     const div = document.createElement("div");
 
     div.className = "camera";

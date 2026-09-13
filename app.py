@@ -11,30 +11,9 @@ from config import Config
 import google_sheet
 # from flask import request
 
-# import camera_monitor
-
 app = Flask(__name__)
 
 CORS(app)
-
-##########################################################
-# Background Thread
-##########################################################
-
-# def update_loop():
-#     while True:
-#         try:
-#             google_sheet.refresh_cache()
-#             print("Google Sheet refreshed")
-
-#             camera_monitor.start()
-#             print("Start camera monitoring")
-
-#         except Exception as ex:
-#             print(ex)
-
-#         time.sleep(Config.REFRESH_SECONDS)
-
 
 ##########################################################
 # API
