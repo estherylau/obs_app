@@ -111,14 +111,16 @@ def get_all_cameras():
         return list(camera_cache)
 
 def get_cache():
-    return camera_cache
+    with camera_cache_lock:
+        return list(camera_cache)
 
 def get_camera(camera_id):
-    print(f'camera_cache {camera_cache}')
     with camera_cache_lock:
+        print(f'camera_cache {camera_cache}')
+        
         for camera in camera_cache:
-            if camera["camera"] == camera_id:
-                return camera
+            if camera["num"] == camera_id:
+                return camera.copy()
     return None
 
 def stop_camera(camera_id):

@@ -1,18 +1,17 @@
-from flask import Flask
-from flask import jsonify
+from flask import Flask, jsonify, render_template
 import requests
-from flask import render_template
 
 from flask_cors import CORS
+import obs_monitor
 
-import threading
-import time
+# import threading
+# import time
 
 from config import Config
 import google_sheet
-from flask import request
+# from flask import request
 
-import camera_monitor
+# import camera_monitor
 
 app = Flask(__name__)
 
@@ -22,19 +21,19 @@ CORS(app)
 # Background Thread
 ##########################################################
 
-def update_loop():
-    while True:
-        try:
-            google_sheet.refresh_cache()
-            print("Google Sheet refreshed")
+# def update_loop():
+#     while True:
+#         try:
+#             google_sheet.refresh_cache()
+#             print("Google Sheet refreshed")
 
-            camera_monitor.start()
-            print("Start camera monitoring")
+#             camera_monitor.start()
+#             print("Start camera monitoring")
 
-        except Exception as ex:
-            print(ex)
+#         except Exception as ex:
+#             print(ex)
 
-        time.sleep(Config.REFRESH_SECONDS)
+#         time.sleep(Config.REFRESH_SECONDS)
 
 
 ##########################################################
@@ -44,7 +43,7 @@ def update_loop():
 @app.route("/api/cameras")
 def api_cameras():
     return jsonify(
-        google_sheet.get_cache()
+        obs_monitor.get_results()
     )
 
 
@@ -64,7 +63,6 @@ def overlay():
 ##########################################################
 @app.route("/button/<int:camera_id>")
 def camera_button(camera_id):
-
     return render_template(
         "button.html",
         camera_id=camera_id
@@ -75,10 +73,9 @@ def camera_button(camera_id):
 # Button Stop Page
 ##########################################################
 @app.route("/api/camera/<int:camera_id>/stop", methods=["POST"])
-def stop_camera(camera_id):
-    print('TODO stop video')
-    
+def stop_camera(camera_id):    
     camera = google_sheet.get_camera(camera_id)
+
     if camera is None:
         return jsonify({
             "success": False,
@@ -135,12 +132,13 @@ def stop_camera(camera_id):
 if __name__ == "__main__":
     google_sheet.refresh_cache()
 
-    thread = threading.Thread(
-        target=update_loop,
-        daemon=True
-    )
+    # thread = threading.Thread(
+    #     target=update_loop,
+    #     daemon=True
+    # )
 
-    thread.start()
+    obs_monitor.start()
+    print("OBS monitor started")
 
     app.run(
         host="0.0.0.0",

@@ -2,14 +2,15 @@ const overlay = document.getElementById("overlay");
 
 /* Create Single Layout */
 function createCamera(camera){
+    console.log('createCamera.overlay: ', camera);
     const div = document.createElement("div");
 
     div.className = "camera";
 
-    const statusClass =
-        camera.status === "Playing"
-        ? "playing"
-        : "stopped";
+    const statusClass = camera.status;
+        // camera.data.status === "ok"
+        // ? "playing"
+        // : "stopped";
 
         //         <div class="location">
         //     ${camera.num} - Location

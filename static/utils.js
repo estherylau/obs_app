@@ -3,6 +3,7 @@ async function refresh() {
         await fetch("/api/cameras");
 
     const cameras = await response.json();
+    console.log("what is cameras: ", cameras);
 
     const overlay = document.getElementById('overlay');
     const buttonLayout = document.getElementById("location");
@@ -22,7 +23,7 @@ async function refresh() {
             window.location.pathname.split("/").pop()
         );
 
-        const currentPearl = cameras.find(camera => camera.num === pearlNumber);
+        const currentPearl = cameras.find((camera, idx) => (idx + 1)=== pearlNumber);
         createCamera(currentPearl);
     }
 }

@@ -5,7 +5,7 @@ body{
     background:transparent;
     overflow:hidden;
     font-family:Arial;
-    color:yellow;
+    color:red;
     width: 1020px;
     height: 562px;
 }
@@ -23,7 +23,7 @@ body{
 .camera{
     display: flex;
     flex-direction: column;
-    color: white;
+    /*color: white;*/
     font-family: Arial;
 }
 
@@ -47,10 +47,10 @@ body{
 }
 
 .playing{
-    color:lime;
+    color:red;
 }
 
 .stopped{
-    color:yellow;
+    color:red;
     font-weight: bold;
 }
