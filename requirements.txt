@@ -4,3 +4,4 @@ gspread
 config
 google-auth
 dotenv
+busylight_core

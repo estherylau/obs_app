@@ -15,31 +15,20 @@ app = Flask(__name__)
 
 CORS(app)
 
-##########################################################
 # API
-##########################################################
-
 @app.route("/api/cameras")
 def api_cameras():
     return jsonify(
         obs_monitor.get_results()
     )
 
-
-##########################################################
 # Overlay Page
-##########################################################
-
 @app.route("/overlay")
 def overlay():
 
     return render_template("overlay.html")
 
-
-
-##########################################################
 # Button Page
-##########################################################
 @app.route("/button/<int:camera_id>")
 def camera_button(camera_id):
     return render_template(
@@ -48,9 +37,7 @@ def camera_button(camera_id):
     )
 
 
-##########################################################
 # Button Stop Page
-##########################################################
 @app.route("/api/camera/<int:camera_id>/stop", methods=["POST"])
 def stop_camera(camera_id):    
     camera = google_sheet.get_camera(camera_id)
@@ -103,11 +90,7 @@ def stop_camera(camera_id):
         "camera": results
     })
 
-
-##########################################################
 # Main
-##########################################################
-
 if __name__ == "__main__":
     google_sheet.refresh_cache()
 

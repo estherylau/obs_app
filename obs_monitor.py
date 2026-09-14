@@ -10,6 +10,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import gspread
 from google.oauth2.service_account import Credentials
 
+import platform
+is_windows = platform.system() == "Windows"
+if is_windows:
+    from busylight_core import EmbravaLights # PC version
+else:
+    import hid # Mac version
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 MAX_WORKERS = 30
@@ -42,6 +49,24 @@ executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
 # Prevent overlapping polling cycles
 poll_lock = threading.Lock()
+
+# Optional Embrava light
+embrava_light = None
+
+try:
+    if is_windows:
+        light = EmbravaLights.all_lights()[0]
+    else:
+        light = None
+
+    if lights:
+        embrava_light = light
+        print("Embrava light detected.")
+    else:
+        print("No Embrava light detected. Continuing without light.")
+except Exception as ex:
+    print(f"Embrava light unavailable: {ex}")
+    embrava_light = None
 
 # GET LOCATIONS FROM GOOGLE SHEET
 def get_locations():
@@ -284,6 +309,7 @@ def monitor_loop():
             }
 
             results = []
+            any_api_error = False
 
             for future in as_completed(futures):
                 location = futures[future]
@@ -293,7 +319,12 @@ def monitor_loop():
                     if result is not None:
                         results.append(result)
 
+                    if result["status"] == "OFFLINE":
+                        any_api_error = True
+
                 except Exception as ex:
+                    any_api_error = True
+
                     print(
                         f"Error processing "
                         f"{location['ip_address']}: {ex}"
@@ -313,13 +344,46 @@ def monitor_loop():
             with results_lock:
                 results_cache[:] = results
 
+            # Embrava error indicator
+            if any_api_error:
+                set_error_light()
+            else:
+                clear_error_light()
+
         except Exception as ex:
             print(f"Monitor loop error: {ex}")
+            set_error_light()
 
         finally:
             poll_lock.release()
 
         time.sleep(Config.REFRESH_INTERVAL)
+
+# Embrava light helper function
+def set_error_light():
+    """Turn the Embrava light red and blinking if available."""
+
+    if embrava_light is None:
+        return
+
+    try:
+        embrava_light.blink(
+            color=(255, 0, 0),
+            speed=1
+        )
+    except Exception as ex:
+        print(f"Unable to activate Embrava light: {ex}")
+
+def clear_error_light():
+    """Turn off the Embrava light if available."""
+
+    if embrava_light is None:
+        return
+
+    try:
+        embrava_light.off()
+    except Exception as ex:
+        print(f"Unable to turn off Embrava light: {ex}")
 
 
 # START MONITOR

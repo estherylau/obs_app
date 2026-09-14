@@ -5,6 +5,9 @@ Backend
 Install libraries before running the app:
 pip install -r requirements.txt
 
+For Mac there is a different steps to install the BlyncLight:
+brew install hidapi
+python3 -m pip install hidapi
 
 Run app:
 python3 app.py

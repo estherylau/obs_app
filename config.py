@@ -12,6 +12,6 @@ class Config:
     GOOGLE_SHEET_TAB = os.getenv("GOOGLE_SHEET_TAB")
     PEARL_USERNAME = os.getenv("PEARL_USERNAME")
     PEARL_PASSWORD = os.getenv("PEARL_PASSWORD")
-    REFRESH_SECONDS = int(os.getenv("REFRESH_SECONDS", 10))
+    REFRESH_INTERVAL = int(os.getenv("REFRESH_INTERVAL", 10))
     MONITOR_START_ROW = int(os.getenv("MONITOR_START_ROW", 10))
     MONITOR_END_ROW = int(os.getenv("MONITOR_END_ROW", 10))
