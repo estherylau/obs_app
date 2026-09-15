@@ -17,10 +17,10 @@ http://localhost:5000/api/cameras
 
 View Overlay:
 http://localhost:5000/overlay
-width: 1020
-height: 562
+width: 2272
+height: 1260
 
 Button Overlay:
 http://localhost:5000/button/1
-width: 206
-height: 30
+width: 406
+height: 60
