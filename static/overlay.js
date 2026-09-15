@@ -6,11 +6,9 @@ function createCamera(camera){
 
     div.className = "camera";
 
-    const statusClass = camera.status;
-        // camera.data.status === "ok"
-        // ? "playing"
-        // : "stopped";
-
+    // const statusClass = camera.status;
+    console.log("check: ", camera.data.status);
+    const statusClass = camera.status.includes("Channel") ? "playing" : "stopped";
         //         <div class="location">
         //     ${camera.num} - Location
         // </div>

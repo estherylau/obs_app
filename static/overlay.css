@@ -5,9 +5,9 @@ body{
     background:transparent;
     overflow:hidden;
     font-family:Arial;
-    color:red;
-    width: 1020px;
-    height: 562px;
+    /*color:red;*/
+    width: 2272px;
+    height: 1260px;
 }
 
 #overlay {
@@ -16,7 +16,6 @@ body{
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     grid-template-rows: repeat(5, 1fr);
-
     pointer-events: none;
 }
 
@@ -36,12 +35,12 @@ body{
     margin: 0 auto;
     padding: 0 2px;
     font-size:11px;
-    font-weight:300;
+    font-weight:600;
 }
 
 .status {
-    font-size: 11px;
-    margin-top: 12px;
+    font-size: 20px;
+    margin-top: 20px;
     margin-left: 14px;
     font-weight: 100;
 }
@@ -51,6 +50,6 @@ body{
 }
 
 .stopped{
-    color:red;
+    color:yellow;
     font-weight: bold;
 }
