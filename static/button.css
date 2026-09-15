@@ -25,9 +25,16 @@ button {
     height: 24px;
 }
 
+.material-symbols-outlined {
+    font-size: 32px;
+}
+
 .stop-btn {
     position: absolute;
     right: 4px;
-    height: 24px;
-    font-size: 20px;
+    color: red;
+    border: 1px solid red;
+    border-radius: 4px;
+    background: transparent;
+    padding: 4px;
 }

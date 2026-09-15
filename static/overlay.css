@@ -6,8 +6,8 @@ body{
     overflow:hidden;
     font-family:Arial;
     /*color:red;*/
-    width: 2272px;
-    height: 1260px;
+    /*width: 2272px;*/
+    /*height: 1260px;*/
 }
 
 #overlay {
@@ -24,6 +24,8 @@ body{
     flex-direction: column;
     /*color: white;*/
     font-family: Arial;
+    padding: 8px;
+    box-sizing: border-box;
 }
 
 .location{
@@ -52,4 +54,30 @@ body{
 .stopped{
     color:red;
     font-weight: bold;
+}
+
+.camera {
+    position: relative;
+    overflow: hidden;
+}
+
+.camera-stream {
+    width: auto;
+    height: 120px;
+    /*object-fit: contain;*/
+    display: block;
+}
+
+.video-container {
+    width: 100%;
+    height: calc(
+        100% - 60px
+    );
+}
+
+.audio-waveform {
+    width: 50%;
+    height: 40px;
+    object-fit: cover;
+    pointer-events: none;
 }

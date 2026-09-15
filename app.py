@@ -4,8 +4,9 @@ import requests
 from flask_cors import CORS
 import obs_monitor
 
-# import threading
-# import time
+import subprocess
+import cv2
+from flask import Response
 
 from config import Config
 import google_sheet
@@ -14,6 +15,126 @@ import google_sheet
 app = Flask(__name__)
 
 CORS(app)
+
+def generate_video(stream_url):
+    cap = cv2.VideoCapture(stream_url)
+
+    if not cap.isOpened():
+        print(f"Unable to open stream: {stream_url}")
+        return
+
+        print(f"Video stream started: {stream_url}")
+
+    try:
+        while True:
+            success, frame = cap.read()
+
+            if not success:
+                print(f"Unable to read stream: {stream_url}")
+                break
+
+            # Encode frame as JPEG
+            success, buffer = cv2.imencode(
+                ".jpg",
+                frame
+            )
+
+            if not success:
+                continue
+
+            frame_bytes = buffer.tobytes()
+
+            yield (
+                b"--frame\r\n"
+                b"Content-Type: image/jpeg\r\n\r\n"
+                + frame_bytes
+                + b"\r\n"
+            )
+
+    finally:
+        cap.release()
+
+        print(f"Video stream stopped: {stream_url}")
+
+# Audio
+def generate_audio(stream_url):
+    command = [
+        "ffmpeg",
+
+        # RTSP input
+        "-rtsp_transport",
+        "tcp",
+
+        "-i",
+        stream_url,
+
+        # Only process audio
+        "-vn",
+
+        # Convert to MP3
+        "-acodec",
+        "libmp3lame",
+
+        # Audio settings
+        "-ar",
+        "44100",
+
+        "-ac",
+        "2",
+
+        "-b:a",
+        "128k",
+
+        # Stream MP3 continuously
+        "-f",
+        "mp3",
+
+        # Output to stdout
+        "pipe:1"
+    ]
+
+    process = None
+
+    try:
+
+        print(
+            f"Audio stream started: {stream_url}"
+        )
+
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            bufsize=0
+        )
+
+        while True:
+
+            data = process.stdout.read(4096)
+
+            if not data:
+                break
+
+            yield data
+
+    except Exception as ex:
+
+        print(
+            f"Audio stream error "
+            f"{ip_address}: {ex}"
+        )
+
+    finally:
+
+        if process is not None:
+
+            process.kill()
+
+            process.wait()
+
+        print(
+            f"Audio stream stopped: {stream_url}"
+        )
 
 # API
 @app.route("/api/cameras")
@@ -89,6 +210,37 @@ def stop_camera(camera_id):
         "success": True,
         "camera": results
     })
+
+# Video streaming
+@app.route("/video/<int:camera_id>")
+def video(camera_id):
+    camera = google_sheet.get_camera(camera_id)
+
+    if camera is None:
+        return "Camera not found", 404
+
+    return Response(
+        generate_video(camera["stream_url"]),
+        mimetype="multipart/x-mixed-replace; boundary=frame"
+    )
+
+# Audio
+@app.route("/audio/<int:camera_id>")
+def audio(camera_id):
+    camera = google_sheet.get_camera(camera_id)
+
+    if camera is None:
+        return "Camera not found", 404
+
+    return Response(
+        generate_audio(camera["stream_url"]),
+        mimetype="audio/mpeg",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive"
+        }
+    )
+
 
 # Main
 if __name__ == "__main__":

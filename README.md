@@ -24,3 +24,11 @@ Button Overlay:
 http://localhost:5000/button/1
 width: 406
 height: 60
+
+Live Video
+http://localhost:5000/video/1
+
+Live Audio
+http://localhost:5000/audio/1
+
+brew install ffmpeg

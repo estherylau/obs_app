@@ -50,7 +50,8 @@ def refresh_cache():
         "Ping",
         "Device Number",
         "Location",
-        "IP Address"
+        "IP Address",
+        "Stream URL"
     ]
 
     for header in required_headers:
@@ -97,6 +98,7 @@ def refresh_cache():
             "camera": camera_number,
             "location": row[column_map["Location"]].strip(),
             "ip_address": row[column_map["IP Address"]].strip(),
+            "stream_url": row[column_map["Stream URL"]].strip(),
             "ping": ping,
             "status": status
         })
