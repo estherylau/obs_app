@@ -1,19 +1,23 @@
 from flask import Flask, jsonify, render_template
+import atexit
 import requests
 
 from flask_cors import CORS
 import obs_monitor
 
-# import threading
-# import time
-
 from config import Config
 import google_sheet
-# from flask import request
+
+from busy_light import BusyLightDriver
 
 app = Flask(__name__)
 
+busy_light = BusyLightDriver()
+
 CORS(app)
+
+# Cleanup when lights turns off if script exits unexpectedly.
+atexit.register(busy_light.shutdown)
 
 # API
 @app.route("/api/cameras")
@@ -35,7 +39,6 @@ def camera_button(camera_id):
         "button.html",
         camera_id=camera_id
     )
-
 
 # Button Stop Page
 @app.route("/api/camera/<int:camera_id>/stop", methods=["POST"])
@@ -98,12 +101,16 @@ if __name__ == "__main__":
     #     target=update_loop,
     #     daemon=True
     # )
+    try:
+        obs_monitor.start()
+        print("OBS monitor started")
 
-    obs_monitor.start()
-    print("OBS monitor started")
-
-    app.run(
-        host="0.0.0.0",
-        port=5000,
-        debug=True
-    )
+        app.run(
+            host="0.0.0.0",
+            port=5000,
+            debug=True
+        )
+    except KeyboardInterrupt:
+        print("Server stopped by user.")
+        busy_light.shutdown()
+        sys.exit(0)

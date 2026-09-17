@@ -4,23 +4,17 @@ import time
 import threading
 import urllib3
 from config import Config
+from app import busy_light
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import gspread
 from google.oauth2.service_account import Credentials
 
-import platform
-is_windows = platform.system() == "Windows"
-if is_windows:
-    from busylight_core import EmbravaLights # PC version
-else:
-    import hid # Mac version
-
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# Configuration
 MAX_WORKERS = 30
-
 AUTH = (Config.PEARL_USERNAME, Config.PEARL_PASSWORD)
 
 # GOOGLE SHEET
@@ -50,23 +44,58 @@ executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 # Prevent overlapping polling cycles
 poll_lock = threading.Lock()
 
-# Optional Embrava light
-embrava_light = None
+# Embrava light
+# from busy_light import BusyLightDriver
+# busy_light = BusyLightDriver()
 
-try:
-    if is_windows:
-        light = EmbravaLights.all_lights()[0]
-    else:
-        light = None
+def initialize_embrava_light():
+    """
+    Detect the Embrava light on Windows or macOS.
 
-    if lights:
-        embrava_light = light
-        print("Embrava light detected.")
-    else:
-        print("No Embrava light detected. Continuing without light.")
-except Exception as ex:
-    print(f"Embrava light unavailable: {ex}")
-    embrava_light = None
+    If the light is not connected or cannot be accessed,
+    the monitor continues without light support.
+    """
+    global embrava_light
+
+    try:
+        from busylight_core import EmbravaLights
+
+        lights = EmbravaLights.all_lights()
+
+        if not lights:
+            print("No Embrava light detected.")
+            return
+
+        embrava_light = lights[0]
+
+        print(
+            f"Embrava light detected: "
+            f"{getattr(embrava_light, 'name', 'Embrava')}"
+        )
+
+        # Test the light on startup
+        embrava_light.on((0, 255, 0))
+        time.sleep(1)
+        embrava_light.off()
+
+        print("Embrava light test successful.")
+
+    except ImportError:
+        print(
+            "busylight-core is not installed. "
+            "Continuing without Embrava light."
+        )
+        embrava_light = None
+
+    except Exception as ex:
+        print(
+            f"Unable to initialize Embrava light: {ex}"
+        )
+
+        embrava_light = None
+
+
+initialize_embrava_light()
 
 # GET LOCATIONS FROM GOOGLE SHEET
 def get_locations():
@@ -82,9 +111,6 @@ def get_locations():
         for index, header in enumerate(headers)
     }
 
-    locations = []
-    num = 1
-
     required_columns = [
         "Ping",
         "Device Number",
@@ -99,10 +125,11 @@ def get_locations():
                 f"Missing Google Sheet column: {column}"
             )
 
+    locations = []
+    num = 1
+
     # Google Sheet row numbers start at 2 because row 1 is headers.
     for sheet_row, row in enumerate(values[1:], start=2):
-        print(f"row: {row}")
-
         # Ignore rows outside the configured monitor range.
         if sheet_row < Config.MONITOR_START_ROW:
             continue
@@ -110,6 +137,7 @@ def get_locations():
         if sheet_row > Config.MONITOR_END_ROW:
             break
 
+        # Ignore empty rows
         if not any(cell.strip() for cell in row):
             continue
 
@@ -136,7 +164,7 @@ def get_locations():
 
 # FETCH ONE LOCATION
 def fetch_location(location):
-    print(f"fetch_location: {location}")
+    # print(f"fetch_location: {location}")
     num = location["num"]
     location_name = location["location"]
     ip_address = location["ip_address"]
@@ -168,33 +196,125 @@ def fetch_location(location):
             auth=AUTH,
             timeout=5
         )
-        print(f"fetch_location.reponse: ${response}")
+        # print(f"fetch_location.reponse: ${response}")
 
         response.raise_for_status()
         data = response.json()
         
         output_data = data
-        # channel_status = get_channel_status(output_data)
 
-        # Inject 'custom' key based on 'stopped' presence
-        if any(item.get("status", {}).get("state") == "error" for item in output_data.get("result", [])):
-            channel_status = "ERROR Channel " + ", ".join(started_ids)
+        results = output_data.get(
+            "result",
+            []
+        )
 
-        elif any(item.get("status", {}).get("state") == "disabled" for item in output_data.get("result", [])):
-            channel_status = "Disabled Channel " + ", ".join(started_ids)
+        # COLLECT CHANNEL STATES
+        # =================================================
 
-        elif any(item.get("status", {}).get("state") == "started" for item in output_data.get("result", [])):
-            # Filter to collect ids with state == "started"
-            started_ids = [
-                item["id"] for item in output_data.get("result", [])
-                if item.get("status", {}).get("state") == "started"
-            ]
+        started_ids = [
+            item.get("id")
+            for item in results
+            if item.get(
+                "status",
+                {}
+            ).get("state") == "started"
+        ]
 
-            # Add to your JSON
-            channel_status = "Channel " + ", ".join(started_ids)
 
-        elif any(item.get("status", {}).get("state") == "stopped" for item in output_data.get("result", [])):
+        error_ids = [
+            item.get("id")
+            for item in results
+            if item.get(
+                "status",
+                {}
+            ).get("state") == "error"
+        ]
+
+
+        disabled_ids = [
+            item.get("id")
+            for item in results
+            if item.get(
+                "status",
+                {}
+            ).get("state") == "disabled"
+        ]
+
+
+        # =================================================
+        # DETERMINE OVERALL STATUS
+        # =================================================
+
+        if error_ids:
+
+            channel_status = (
+                "ERROR Channel "
+                + ", ".join(error_ids)
+            )
+
+
+        elif disabled_ids:
+
+            channel_status = (
+                "Disabled Channel "
+                + ", ".join(disabled_ids)
+            )
+
+
+        elif started_ids:
+
+            channel_status = (
+                "Channel "
+                + ", ".join(started_ids)
+            )
+
+
+        elif results and all(
+            item.get(
+                "status",
+                {}
+            ).get("state") == "stopped"
+            for item in results
+        ):
+
             channel_status = "Not recording"
+
+
+        else:
+
+            channel_status = "Unknown"
+
+        # # COLLECT CHANNEL STATES
+        # started_ids = [
+        #     item.get("id")
+        #     for item in results
+        #     if item.get(
+        #         "status",
+        #         {}
+        #     ).get("state") == "started"
+        # ]
+
+        # # channel_status = get_channel_status(output_data)
+
+        # # Inject 'custom' key based on 'stopped' presence
+        # if any(item.get("status", {}).get("state") == "error" for item in output_data.get("result", [])):
+        #     channel_status = "ERROR Channel " + ", ".join(started_ids)
+
+        # elif any(item.get("status", {}).get("state") == "disabled" for item in output_data.get("result", [])):
+        #     channel_status = "Disabled Channel " + ", ".join(started_ids)
+
+        # elif any(item.get("status", {}).get("state") == "started" for item in output_data.get("result", [])):
+        #     # Filter to collect ids with state == "started"
+        #     started_ids = [
+        #         item["id"] for item in output_data.get("result", [])
+        #         if item.get("status", {}).get("state") == "started"
+        #     ]
+
+        #     # Add to your JSON
+        #     channel_status = "Channel " + ", ".join(started_ids)
+
+        # elif any(item.get("status", {}).get("state") == "stopped" for item in output_data.get("result", [])):
+        #     channel_status = "Not recording"
 
         return {
             "num": num,
@@ -207,17 +327,14 @@ def fetch_location(location):
     except requests.exceptions.ConnectionError as e:
         # print(f"{ip_address} - Connection Error: {e}")
         print(f"{ip_address} - Connection Error")
-        # channel_status = "OFFLINE"
 
     except requests.exceptions.Timeout as e:
         print(f"{ip_address} - Timeout: {e}")
-        # channel_status = "OFFLINE"
 
     except Exception as e:
         print(f"{ip_address} - Error: {e}")
-        # channel_status = "OFFLINE"
 
-    # Add information about this location.
+    # Offline Result
     return {
         "num": num,
         "location": location_name,
@@ -225,8 +342,6 @@ def fetch_location(location):
         "status": "OFFLINE",
         "data": output_data
     }
-
-    # return output
 
 def get_channel_status(data):
     results = data.get("result", [])
@@ -264,14 +379,6 @@ def poll_all_locations():
     with ThreadPoolExecutor(
         max_workers=len(locations)
     ) as executor:
-
-        # futures = [
-        #     executor.submit(
-        #         fetch_location,
-        #         index
-        #     )
-        #     for index in range(len(SOURCE_URLS))
-        # ]
 
         new_results = list(
             executor.map(
@@ -346,9 +453,9 @@ def monitor_loop():
 
             # Embrava error indicator
             if any_api_error:
-                set_error_light()
+            	busy_light.set_status("fail")
             else:
-                clear_error_light()
+            	busy_light.off()
 
         except Exception as ex:
             print(f"Monitor loop error: {ex}")
@@ -362,15 +469,12 @@ def monitor_loop():
 # Embrava light helper function
 def set_error_light():
     """Turn the Embrava light red and blinking if available."""
-
+    print(f"set_error_light")
     if embrava_light is None:
         return
 
     try:
-        embrava_light.blink(
-            color=(255, 0, 0),
-            speed=1
-        )
+        embrava_light.on((255, 0, 0))
     except Exception as ex:
         print(f"Unable to activate Embrava light: {ex}")
 
