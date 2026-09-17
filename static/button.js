@@ -5,19 +5,9 @@ function createCamera(camera){
     const div = document.createElement("div");
 
     div.className = "device-label";
-
-    // const statusClass =
-    //     camera.status === "Playing"
-    //     ? "playing"
-    //     : "stopped";
-
-        //         <div class="location">
-        //     ${camera.num} - Location
-        // </div>
-
     div.innerHTML = `
         <div class="loca">
-            ${camera.location}
+            ${camera.num} - ${camera.location}
         </div>
     `;
 
